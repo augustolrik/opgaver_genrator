@@ -1,0 +1,2 @@
+Det her er en testlinje.
+Her bliver tidskoder fjernet.
