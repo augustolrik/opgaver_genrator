@@ -6,6 +6,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Circle, Drawing, Line, Polygon, Rect, String
 from reportlab.platypus import Image as RLImage, PageBreak, Paragraph, SimpleDocTemplate, Table, TableStyle
+from html import escape
 import os
 import random
 
@@ -18,6 +19,16 @@ labyrint_celle_style.leading = 9
 laes_og_forstaa_style = styles["Normal"].clone("LaesOgForstaa")
 laes_og_forstaa_style.fontSize = 8.5
 laes_og_forstaa_style.leading = 10
+kode_tekst_style = styles["Normal"].clone("KodeOpgaveTekst")
+kode_tekst_style.fontSize = 8.5
+kode_tekst_style.leading = 10
+kode_style = styles["Normal"].clone("KodeOpgaveKode")
+kode_style.fontName = "Courier"
+kode_style.fontSize = 8
+kode_style.leading = 9
+hemmelig_kode_style = styles["Normal"].clone("HemmeligKode")
+hemmelig_kode_style.fontSize = 8.3
+hemmelig_kode_style.leading = 9.5
 
 
 #%% ---------- HURTIG OPSAETNING ----------
@@ -57,6 +68,7 @@ TREKANT_AREAL_BILLEDE_STI = os.path.join(BASE_MAPPE, "posters", "trekant_areal_b
 # Moenstre og logik:
 # talpyramide (maks 4), gangepyramide (maks 4), raekkefoelger
 # rangering_regnestykker, rutespil (maks 1), labyrint_spil (maks 1)
+# kode_opgaver (maks 2), hemmelige_koder (maks 4)
 #
 # Matematiklaesning:
 # laes_og_forstaa (maks 2)
@@ -289,6 +301,18 @@ BOKS_SKABELONER = {
         "titel": "Rækkefølger",
         "forklaring": "Find mønsteret og skriv det manglende led.",
         "generator": ("raekkefoelger", "random"),
+    },
+    "kode_opgaver": {
+        "titel": "Programmeringskode",
+        "forklaring": "Læs den lille kode fra top til bund. Skriv værdien til sidst.",
+        "generator": ("kode_opgaver", "random"),
+        "maks_antal": 2,
+    },
+    "hemmelige_koder": {
+        "titel": "Hemmelige koder",
+        "forklaring": "Knæk koden og skriv den hemmelige besked.",
+        "generator": ("hemmelige_koder", "random"),
+        "maks_antal": 4,
     },
     "laes_og_forstaa": {
         "titel": "Læs og forstå matematik",
@@ -3097,6 +3121,417 @@ def laes_og_forstaa(niveau="random"):
     raise ValueError(f"Ukendt niveau for laes_og_forstaa: {niveau}")
 
 
+def lav_kode_opgave_layout(intro, kodelinjer, spoergsmaal, svar):
+    kode_html = "<br/>".join(escape(linje).replace(" ", "&nbsp;") for linje in kodelinjer)
+    kodefelt = Table(
+        [[Paragraph(kode_html, kode_style)]],
+        colWidths=[204],
+    )
+    kodefelt.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f5f0fb")),
+        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#bda8d8")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+
+    opgave_tabel = Table(
+        [
+            [Paragraph(intro, kode_tekst_style)],
+            [kodefelt],
+            [Paragraph(f"<b>Opgave:</b> {spoergsmaal}", kode_tekst_style)],
+            [Paragraph("<b>Svar:</b> __________________", kode_tekst_style)],
+        ],
+        colWidths=[210],
+        rowHeights=[None, None, None, 16],
+    )
+    opgave_tabel.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 3),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 1),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+    ]))
+    opgave_tabel.kode_opgave_svar = svar
+    return opgave_tabel
+
+
+def kode_opgaver_let():
+    opgavetype = random.choice(["plus", "gange_plus", "minus"])
+
+    if opgavetype == "plus":
+        start = random.randint(4, 18)
+        laeg_til = random.randint(3, 12)
+        svar = start + laeg_til
+        kodelinjer = [
+            f"tal = {start}",
+            f"tal = tal + {laeg_til}",
+            "vis tal",
+        ]
+    elif opgavetype == "gange_plus":
+        start = random.randint(2, 8)
+        gange_med = random.randint(2, 4)
+        laeg_til = random.randint(1, 8)
+        svar = start * gange_med + laeg_til
+        kodelinjer = [
+            f"tal = {start}",
+            f"tal = tal * {gange_med}",
+            f"tal = tal + {laeg_til}",
+            "vis tal",
+        ]
+    else:
+        start = random.randint(15, 35)
+        traek_fra = random.randint(4, 12)
+        svar = start - traek_fra
+        kodelinjer = [
+            f"point = {start}",
+            f"point = point - {traek_fra}",
+            "vis point",
+        ]
+
+    intro = "Gå linjerne igennem en ad gangen."
+    spoergsmaal = "Hvilket tal vises til sidst?"
+    return lav_kode_opgave_layout(intro, kodelinjer, spoergsmaal, svar)
+
+
+def kode_opgaver_mellem():
+    opgavetype = random.choice(["gentag_plus", "hvis_ellers", "gentag_gange"])
+
+    if opgavetype == "gentag_plus":
+        start = random.randint(2, 15)
+        antal = random.randint(3, 6)
+        laeg_til = random.randint(2, 8)
+        svar = start + antal * laeg_til
+        kodelinjer = [
+            f"tal = {start}",
+            f"gentag {antal} gange:",
+            f"  tal = tal + {laeg_til}",
+            "vis tal",
+        ]
+    elif opgavetype == "hvis_ellers":
+        point = random.randint(8, 28)
+        graense = random.randint(12, 22)
+        bonus = random.randint(3, 10)
+        straf = random.randint(2, 8)
+        if point >= graense:
+            svar = point + bonus
+        else:
+            svar = point - straf
+        kodelinjer = [
+            f"point = {point}",
+            f"hvis point >= {graense}:",
+            f"  point = point + {bonus}",
+            "ellers:",
+            f"  point = point - {straf}",
+            "vis point",
+        ]
+    else:
+        start = random.randint(2, 6)
+        antal = random.randint(2, 4)
+        faktor = random.choice([2, 3])
+        svar = start * (faktor ** antal)
+        kodelinjer = [
+            f"tal = {start}",
+            f"gentag {antal} gange:",
+            f"  tal = tal * {faktor}",
+            "vis tal",
+        ]
+
+    intro = "Læs indrykningen: linjer under gentag eller hvis hører med dér."
+    spoergsmaal = "Hvilken værdi bliver vist?"
+    return lav_kode_opgave_layout(intro, kodelinjer, spoergsmaal, svar)
+
+
+def kode_opgaver_svaer():
+    opgavetype = random.choice(["to_linjer_i_loop", "liste", "loop_og_hvis"])
+
+    if opgavetype == "to_linjer_i_loop":
+        start = random.randint(2, 7)
+        antal = random.randint(2, 4)
+        faktor = random.choice([2, 3])
+        minus = random.randint(1, 5)
+        tal = start
+        for _ in range(antal):
+            tal = tal * faktor
+            tal = tal - minus
+        svar = tal
+        kodelinjer = [
+            f"tal = {start}",
+            f"gentag {antal} gange:",
+            f"  tal = tal * {faktor}",
+            f"  tal = tal - {minus}",
+            "vis tal",
+        ]
+    elif opgavetype == "liste":
+        tal = random.randint(3, 12)
+        bonusser = [random.randint(1, 7) for _ in range(3)]
+        faktor = random.choice([2, 3])
+        svar = (tal + sum(bonusser)) * faktor
+        bonus_tekst = ", ".join(str(bonus) for bonus in bonusser)
+        kodelinjer = [
+            f"tal = {tal}",
+            f"for hver bonus i [{bonus_tekst}]:",
+            "  tal = tal + bonus",
+            f"tal = tal * {faktor}",
+            "vis tal",
+        ]
+    else:
+        tal = random.randint(5, 15)
+        antal = random.randint(2, 5)
+        laeg_til = random.randint(3, 8)
+        graense = random.randint(25, 38)
+        tal_efter_loop = tal + antal * laeg_til
+        if tal_efter_loop > graense:
+            svar = tal_efter_loop - 10
+        else:
+            svar = tal_efter_loop + 10
+        kodelinjer = [
+            f"tal = {tal}",
+            f"gentag {antal} gange:",
+            f"  tal = tal + {laeg_til}",
+            f"hvis tal > {graense}:",
+            "  tal = tal - 10",
+            "ellers:",
+            "  tal = tal + 10",
+            "vis tal",
+        ]
+
+    intro = "Hold styr på værdien efter hver linje. Brug gerne mellemregninger."
+    spoergsmaal = "Hvad ender tallet med at være?"
+    return lav_kode_opgave_layout(intro, kodelinjer, spoergsmaal, svar)
+
+
+def kode_opgaver(niveau="random"):
+    if niveau == "random":
+        type_opgave = random.choice(["let", "mellem", "mellem", "svaer"])
+    else:
+        type_opgave = niveau
+
+    if type_opgave == "let":
+        return kode_opgaver_let()
+    if type_opgave == "mellem":
+        return kode_opgaver_mellem()
+    if type_opgave == "svaer":
+        return kode_opgaver_svaer()
+    raise ValueError(f"Ukendt niveau for kode_opgaver: {niveau}")
+
+
+ALFABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+HEMMELIGE_ORD_LET = ["KAT", "HUS", "SOL", "BOG", "VEN", "KAGE", "SKOLE"]
+HEMMELIGE_ORD_MELLEM = ["SKOLE", "KODER", "REGN", "TIMER", "BLYANT", "KLASSE"]
+HEMMELIGE_ORD_SVAER = ["MATEMATIK", "FRIKVARTER", "PROGRAM", "HEMMELIG", "TALMESTER"]
+SYMBOL_NOGLE = {
+    "A": "△", "B": "□", "D": "◆", "E": "○", "G": "◇", "H": "★", "I": "♣",
+    "K": "▲", "L": "●", "M": "■", "N": "☆", "O": "◆", "P": "⬟", "R": "⬢",
+    "S": "✚", "T": "✦", "V": "✿",
+}
+EMOJI_NOGLE = {
+    "A": "🍎", "D": "🐶", "E": "⭐", "G": "🌵", "H": "🏠", "I": "🍦",
+    "K": "🔑", "L": "🌙", "M": "🎵", "N": "☁️", "O": "⚽", "R": "🚀",
+    "S": "☀️", "T": "🌳",
+}
+
+
+def caesar_kode(tekst, skub):
+    kodet = []
+    for bogstav in tekst:
+        if bogstav in ALFABET:
+            kodet.append(ALFABET[(ALFABET.index(bogstav) + skub) % len(ALFABET)])
+        else:
+            kodet.append(bogstav)
+    return "".join(kodet)
+
+
+def tal_kode(tekst, separator=" "):
+    return separator.join(str(ALFABET.index(bogstav) + 1) if bogstav in ALFABET else "|" for bogstav in tekst)
+
+
+def omvendt_alfabet_kode(tekst):
+    kodet = []
+    for bogstav in tekst:
+        if bogstav in ALFABET:
+            kodet.append(ALFABET[-(ALFABET.index(bogstav) + 1)])
+        else:
+            kodet.append(bogstav)
+    return "".join(kodet)
+
+
+def hvert_andet_bogstav_kode(tekst):
+    fyld = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    kodet = []
+    for index, bogstav in enumerate(tekst):
+        kodet.append(bogstav)
+        kodet.append(fyld[(index * 5 + len(tekst)) % len(fyld)])
+    return "".join(kodet)
+
+
+def lav_symbol_nogle(tekst, noegle):
+    brugte = []
+    for bogstav in tekst:
+        if bogstav in noegle and bogstav not in brugte:
+            brugte.append(bogstav)
+    return ", ".join(f"{noegle[bogstav]}={bogstav}" for bogstav in brugte)
+
+
+def symbol_kode(tekst, noegle):
+    return " ".join(noegle.get(bogstav, bogstav) for bogstav in tekst)
+
+
+def lav_hemmelig_kode_layout(kodetype, hemmelig_besked, hint, svar):
+    emoji_font_findes = registrer_emoji_font()
+    lokal_style = hemmelig_kode_style.clone(f"HemmeligKode{random.randint(1, 100000)}")
+    if emoji_font_findes and any(ord(tegn) > 10000 for tegn in hemmelig_besked):
+        lokal_style.fontName = EMOJI_FONT_NAVN
+
+    opgave_tabel = Table(
+        [
+            [Paragraph(f"<b>{escape(kodetype)}</b>", hemmelig_kode_style)],
+            [Paragraph(f"<b>Hemmelig besked:</b> {escape(hemmelig_besked)}", lokal_style)],
+            [Paragraph(f"<b>Hint:</b> {escape(hint)}", hemmelig_kode_style)],
+            [Paragraph("<b>Svar:</b> ______________________________", hemmelig_kode_style)],
+        ],
+        colWidths=[210],
+        rowHeights=[12, None, None, 15],
+    )
+    opgave_tabel.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 3),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 1),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 1),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.4, colors.HexColor("#c8b6dc")),
+    ]))
+    opgave_tabel.hemmelig_kode_svar = svar
+    return opgave_tabel
+
+
+def hemmelige_koder_let():
+    opgavetype = random.choice(["caesar_1", "tal", "baglaens", "symbol"])
+    svar = random.choice(HEMMELIGE_ORD_LET)
+
+    if opgavetype == "caesar_1":
+        skub = random.choice([1, 2])
+        return lav_hemmelig_kode_layout(
+            f"Caesar +{skub}",
+            caesar_kode(svar, skub),
+            f"Alle bogstaver er flyttet {skub} plads frem i alfabetet.",
+            svar,
+        )
+    if opgavetype == "tal":
+        return lav_hemmelig_kode_layout(
+            "Tal-kode",
+            tal_kode(svar),
+            "A=1, B=2, C=3 ...",
+            svar,
+        )
+    if opgavetype == "baglaens":
+        return lav_hemmelig_kode_layout(
+            "Baglæns kode",
+            svar[::-1],
+            "Læs ordet bagfra.",
+            svar,
+        )
+    return lav_hemmelig_kode_layout(
+        "Symbolkode",
+        symbol_kode(svar, SYMBOL_NOGLE),
+        f"Nøgle: {lav_symbol_nogle(svar, SYMBOL_NOGLE)}",
+        svar,
+    )
+
+
+def hemmelige_koder_mellem():
+    opgavetype = random.choice(["caesar_3", "omvendt", "hvert_andet", "emoji", "mester"])
+    svar = random.choice(HEMMELIGE_ORD_MELLEM)
+
+    if opgavetype == "caesar_3":
+        skub = random.choice([2, 3, 4])
+        return lav_hemmelig_kode_layout(
+            f"Caesar +{skub}",
+            caesar_kode(svar, skub),
+            f"Flyt hvert bogstav {skub} pladser tilbage for at læse beskeden.",
+            svar,
+        )
+    if opgavetype == "omvendt":
+        return lav_hemmelig_kode_layout(
+            "Omvendt alfabet",
+            omvendt_alfabet_kode(svar),
+            "A byttes med Z, B med Y, C med X osv.",
+            svar,
+        )
+    if opgavetype == "hvert_andet":
+        return lav_hemmelig_kode_layout(
+            "Hvert andet bogstav",
+            hvert_andet_bogstav_kode(svar),
+            "Læs bogstav nummer 1, 3, 5, 7 ...",
+            svar,
+        )
+    if opgavetype == "emoji":
+        emoji_ord = random.choice(["KODE", "REGN", "MAT"])
+        return lav_hemmelig_kode_layout(
+            "Emoji-kode",
+            symbol_kode(emoji_ord, EMOJI_NOGLE),
+            f"Nøgle: {lav_symbol_nogle(emoji_ord, EMOJI_NOGLE)}",
+            emoji_ord,
+        )
+    return lav_hemmelig_kode_layout(
+        "Mesterkode",
+        tal_kode(svar, separator="-"),
+        "Tal svarer til bogstaver. Bindestreger deler tallene.",
+        svar,
+    )
+
+
+def hemmelige_koder_svaer():
+    opgavetype = random.choice(["caesar_ord", "hvert_andet", "blandet_tal", "omvendt"])
+    svar = random.choice(HEMMELIGE_ORD_SVAER)
+
+    if opgavetype == "caesar_ord":
+        skub = random.choice([3, 4, 5])
+        return lav_hemmelig_kode_layout(
+            f"Caesar +{skub}",
+            caesar_kode(svar, skub),
+            f"Find det rigtige ord ved at flytte hvert bogstav {skub} pladser tilbage.",
+            svar,
+        )
+    if opgavetype == "hvert_andet":
+        return lav_hemmelig_kode_layout(
+            "Hvert andet bogstav",
+            hvert_andet_bogstav_kode(svar),
+            "De rigtige bogstaver står på pladserne 1, 3, 5, 7 ...",
+            svar,
+        )
+    if opgavetype == "blandet_tal":
+        besked = f"{tal_kode(svar[:len(svar)//2], separator='-')} | {tal_kode(svar[len(svar)//2:], separator='-')}"
+        return lav_hemmelig_kode_layout(
+            "Mesterkode",
+            besked,
+            "A=1. Lodret streg deler beskeden i to dele.",
+            svar,
+        )
+    return lav_hemmelig_kode_layout(
+        "Omvendt alfabet",
+        omvendt_alfabet_kode(svar),
+        "Brug A↔Z, B↔Y, C↔X osv.",
+        svar,
+    )
+
+
+def hemmelige_koder(niveau="random"):
+    if niveau == "random":
+        type_opgave = random.choice(["let", "mellem", "mellem", "svaer"])
+    else:
+        type_opgave = niveau
+
+    if type_opgave == "let":
+        return hemmelige_koder_let()
+    if type_opgave == "mellem":
+        return hemmelige_koder_mellem()
+    if type_opgave == "svaer":
+        return hemmelige_koder_svaer()
+    raise ValueError(f"Ukendt niveau for hemmelige_koder: {niveau}")
+
+
 GENERATORS = {
     "gange": gange,
     "visuel_gange": visuel_gange,
@@ -3130,6 +3565,8 @@ GENERATORS = {
     "vinkel_firkant": vinkel_firkant,
     "labyrint_spil": labyrint_spil,
     "raekkefoelger": raekkefoelger,
+    "kode_opgaver": kode_opgaver,
+    "hemmelige_koder": hemmelige_koder,
     "laes_og_forstaa": laes_og_forstaa,
 }
 
@@ -3260,6 +3697,18 @@ def hent_generator(generator_valg):
                 return raekkefoelger(niveau)
 
             gen.__name__ = "raekkefoelger"
+            return gen
+        if navn == "kode_opgaver":
+            def gen():
+                return kode_opgaver(niveau)
+
+            gen.__name__ = "kode_opgaver"
+            return gen
+        if navn == "hemmelige_koder":
+            def gen():
+                return hemmelige_koder(niveau)
+
+            gen.__name__ = "hemmelige_koder"
             return gen
         if navn == "laes_og_forstaa":
             def gen():
@@ -3397,6 +3846,10 @@ def lav_boks(titel, forklaring, opgavefunktion, antal=8, boksbredde=230, bokshoe
         antal = min(antal, 2)
     if opgavefunktion.__name__ == "visuel_areal":
         antal = min(antal, 2)
+    if opgavefunktion.__name__ == "kode_opgaver":
+        antal = min(antal, 2)
+    if opgavefunktion.__name__ == "hemmelige_koder":
+        antal = min(antal, 4)
     if opgavefunktion.__name__ == "laes_og_forstaa":
         antal = min(antal, 2)
     overskrift = f"<b>{titel}</b>"

@@ -119,6 +119,8 @@ CATEGORY_DA = {
     "talpyramide": "Mønstre og logik",
     "gangepyramide": "Mønstre og logik",
     "raekkefoelger": "Mønstre og logik",
+    "kode_opgaver": "Mønstre og logik",
+    "hemmelige_koder": "Mønstre og logik",
     "rangering_regnestykker": "Mønstre og logik",
     "rutespil": "Mønstre og logik",
     "labyrint_spil": "Mønstre og logik",
@@ -179,6 +181,8 @@ TASK_TEXT_EN = {
     "vinkel_firkant": ("Quadrilateral angles", "Find the hidden angle."),
     "labyrint_spil": ("Maze game", "Go from START to FINISH through the maze."),
     "raekkefoelger": ("Sequences", "Find the pattern and write the missing term."),
+    "kode_opgaver": ("Programming code", "Read the small code from top to bottom and find the final value."),
+    "hemmelige_koder": ("Secret codes", "Crack the code and write the hidden message."),
     "laes_og_forstaa": ("Read and understand math", "Read the text. Find the information you need and solve the problem."),
 }
 
