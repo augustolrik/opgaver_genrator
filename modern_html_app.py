@@ -2,24 +2,29 @@ from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote, unquote
+from urllib.parse import quote
+import hashlib
 import json
 import os
+import random
 import re
 import socket
 import threading
 import webbrowser
 
+import fitz
+from shared_app_metadata import CATEGORY_DA, CATEGORY_EN, LEVEL_LABELS, TASK_TEXT_EN
 import unikke_opgaver_set_up as opgaver
-from store_app import CATEGORY_DA, CATEGORY_EN, LEVEL_LABELS, TASK_TEXT_EN
 
 
 HOST = "127.0.0.1"
 START_PORT = 8765
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = APP_DIR / "random_opgaver_pdf"
+PREVIEW_CACHE_DIR = APP_DIR / ".preview_cache"
 LEVELS = ["let", "mellem", "svaer", "random"]
 GENERATED_FILES: dict[str, Path] = {}
+PREVIEW_FILES: dict[str, Path] = {}
 
 
 TEXT = {
@@ -45,6 +50,11 @@ TEXT = {
         "testLevel": "Testniveau",
         "generateTest": "Lav test-PDF",
         "testFilename": "test_alle_opgaver.pdf",
+        "preview": "Forhåndsvisning",
+        "previewText": "De første sider opdateres automatisk, når du ændrer opsætningen.",
+        "previewLoading": "Opdaterer forhåndsvisning...",
+        "previewEmpty": "Vælg opgavetyper for at se de første sider her.",
+        "pageLabel": "Side",
         "clear": "Ryd",
         "ready": "Klar til at bygge.",
         "building": "Bygger PDF...",
@@ -77,6 +87,11 @@ TEXT = {
         "testLevel": "Test difficulty",
         "generateTest": "Generate test PDF",
         "testFilename": "test_all_assignments.pdf",
+        "preview": "Preview",
+        "previewText": "The first pages update automatically when you change the setup.",
+        "previewLoading": "Updating preview...",
+        "previewEmpty": "Choose assignment types to see the first pages here.",
+        "pageLabel": "Page",
         "clear": "Clear",
         "ready": "Ready to build.",
         "building": "Building PDF...",
@@ -151,15 +166,10 @@ def task_metadata() -> list[dict[str, object]]:
     return items
 
 
-def build_pdf(payload: dict) -> dict[str, str]:
+def box_choices_from_payload(payload: dict) -> list[tuple[str, str] | None]:
     lang = payload.get("lang", "da")
     box_count = 8 if payload.get("doubleSided") else 4
-    pages = clamp_int(payload.get("pages"), 1, 300, 10)
-    tasks = clamp_int(payload.get("tasks"), 1, 12, opgaver.ANTAL_OPGAVER_I_BOKS)
-    filename = clean_filename(payload.get("filename", "opgaver.pdf"))
-    out_dir = Path(payload.get("outputDir") or DEFAULT_OUTPUT_DIR).expanduser()
     boxes = payload.get("boxes", [])
-
     choices = []
     for index in range(box_count):
         box = boxes[index] if index < len(boxes) else {}
@@ -173,6 +183,64 @@ def build_pdf(payload: dict) -> dict[str, str]:
         if level not in LEVELS:
             level = "random"
         choices.append((name, level))
+    return choices
+
+
+def preview_signature(payload: dict, tasks: int, pages: int) -> str:
+    normalized = {
+        "lang": payload.get("lang", "da"),
+        "doubleSided": bool(payload.get("doubleSided")),
+        "tasks": tasks,
+        "pages": pages,
+        "boxes": box_choices_from_payload(payload),
+    }
+    raw = json.dumps(normalized, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    return hashlib.sha1(raw).hexdigest()[:16]
+
+
+def render_preview_images(pdf_path: Path, signature: str) -> list[dict[str, str]]:
+    previews = []
+    with fitz.open(pdf_path) as document:
+        for index, page in enumerate(document, start=1):
+            image_path = PREVIEW_CACHE_DIR / f"{signature}_page_{index}.png"
+            if not image_path.exists():
+                pixmap = page.get_pixmap(matrix=fitz.Matrix(1.25, 1.25), alpha=False)
+                pixmap.save(str(image_path))
+            file_id = quote(str(image_path.resolve()), safe="")
+            PREVIEW_FILES[file_id] = image_path.resolve()
+            previews.append({"fileId": file_id, "page": str(index)})
+    return previews
+
+
+def build_preview(payload: dict) -> dict[str, object]:
+    PREVIEW_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    tasks = clamp_int(payload.get("tasks"), 1, 12, opgaver.ANTAL_OPGAVER_I_BOKS)
+    requested_pages = clamp_int(payload.get("pages"), 1, 300, 10)
+    preview_pages = min(requested_pages, 2)
+    choices = box_choices_from_payload(payload)
+    if not any(choice is not None for choice in choices):
+        return {"pages": []}
+    signature = preview_signature(payload, tasks, preview_pages)
+    pdf_path = PREVIEW_CACHE_DIR / f"preview_{signature}.pdf"
+
+    if not pdf_path.exists():
+        setup = opgaver.byg_boks_opsaetning(choices, opgaver.BOKS_SKABELONER)
+        random_state = random.getstate()
+        random.seed(f"preview:{signature}")
+        try:
+            opgaver.byg_pdf(str(pdf_path), preview_pages, setup, tasks)
+        finally:
+            random.setstate(random_state)
+
+    return {"pages": render_preview_images(pdf_path, signature)}
+
+
+def build_pdf(payload: dict) -> dict[str, str]:
+    choices = box_choices_from_payload(payload)
+    pages = clamp_int(payload.get("pages"), 1, 300, 10)
+    tasks = clamp_int(payload.get("tasks"), 1, 12, opgaver.ANTAL_OPGAVER_I_BOKS)
+    filename = clean_filename(payload.get("filename", "opgaver.pdf"))
+    out_dir = Path(payload.get("outputDir") or DEFAULT_OUTPUT_DIR).expanduser()
 
     out_dir.mkdir(parents=True, exist_ok=True)
     setup = opgaver.byg_boks_opsaetning(choices, opgaver.BOKS_SKABELONER)
@@ -544,6 +612,54 @@ HTML = r"""<!doctype html>
       text-decoration: none;
     }
 
+    .preview-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .preview-copy {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    .preview-card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(241,234,246,0.9));
+    }
+
+    .preview-card strong {
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .preview-card img {
+      width: 100%;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(116, 99, 157, 0.12);
+      background: white;
+      box-shadow: 0 10px 24px rgba(73, 61, 105, 0.08);
+    }
+
+    .preview-empty {
+      padding: 18px;
+      border: 1px dashed var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.52);
+      color: var(--muted);
+      text-align: center;
+    }
+
     @media (max-width: 900px) {
       .hero, .settings, .grid, .filter-row, .test-row { grid-template-columns: 1fr; }
       .box-fields { grid-template-columns: 1fr; }
@@ -626,6 +742,15 @@ HTML = r"""<!doctype html>
         <div id="resultLinks" class="links"></div>
       </div>
     </section>
+
+    <section class="panel preview-panel">
+      <div>
+        <h2 class="section-title" id="previewTitle"></h2>
+        <div class="preview-copy" id="previewText"></div>
+      </div>
+      <div id="previewStatus" class="preview-empty"></div>
+      <div id="previewPages" class="preview-grid"></div>
+    </section>
   </main>
 
   <script>
@@ -638,7 +763,7 @@ HTML = r"""<!doctype html>
       en: { let: "Easy", mellem: "Medium", svaer: "Hard", random: "Mixed" }
     };
 
-    const state = { lang: "da", boxes: [], category: "" };
+    const state = { lang: "da", boxes: [], category: "", previewToken: 0, previewAbort: null };
     const el = id => document.getElementById(id);
 
     function t(key) { return TEXT[state.lang][key]; }
@@ -673,6 +798,8 @@ HTML = r"""<!doctype html>
       el("testLevelLabel").textContent = t("testLevel");
       el("testPdfBtn").textContent = t("generateTest");
       el("testPdfText").textContent = t("testPdfText");
+      el("previewTitle").textContent = t("preview");
+      el("previewText").textContent = t("previewText");
       el("clearBtn").textContent = t("clear");
       el("generateBtn").textContent = t("generate");
       renderCategoryFilter();
@@ -733,6 +860,7 @@ HTML = r"""<!doctype html>
         taskSelect.addEventListener("change", () => {
           box.name = taskSelect.value;
           updateHint(card, box);
+          queuePreview();
         });
         taskField.append(taskLabelEl, taskSelect);
 
@@ -743,7 +871,10 @@ HTML = r"""<!doctype html>
         const levelSelect = document.createElement("select");
         levelSelect.innerHTML = LEVELS.map(level => `<option value="${level}">${LEVEL_LABELS[state.lang][level]}</option>`).join("");
         levelSelect.value = box.level || "random";
-        levelSelect.addEventListener("change", () => { box.level = levelSelect.value; });
+        levelSelect.addEventListener("change", () => {
+          box.level = levelSelect.value;
+          queuePreview();
+        });
         levelField.append(levelLabelEl, levelSelect);
 
         const hint = document.createElement("div");
@@ -768,6 +899,86 @@ HTML = r"""<!doctype html>
     function clearBoxes() {
       state.boxes = Array.from({ length: el("doubleSided").checked ? 8 : 4 }, () => ({ name: "", level: "random" }));
       renderBoxes();
+      queuePreview();
+    }
+
+    function previewPayload() {
+      const data = payload();
+      return {
+        lang: data.lang,
+        pages: data.pages,
+        tasks: data.tasks,
+        doubleSided: data.doubleSided,
+        boxes: data.boxes
+      };
+    }
+
+    function setPreviewMessage(message) {
+      el("previewStatus").hidden = false;
+      el("previewStatus").textContent = message;
+    }
+
+    function renderPreview(pages) {
+      const root = el("previewPages");
+      root.innerHTML = "";
+      if (!pages.length) {
+        setPreviewMessage(t("previewEmpty"));
+        return;
+      }
+      el("previewStatus").hidden = true;
+      pages.forEach(item => {
+        const card = document.createElement("article");
+        card.className = "preview-card";
+        card.innerHTML = `<strong>${t("pageLabel")} ${item.page}</strong><img alt="${t("pageLabel")} ${item.page}" src="/preview-image/${item.fileId}?v=${Date.now()}">`;
+        root.append(card);
+      });
+    }
+
+    async function updatePreview() {
+      if (state.previewAbort) state.previewAbort.abort();
+      const token = ++state.previewToken;
+      const controller = new AbortController();
+      state.previewAbort = controller;
+      el("previewPages").innerHTML = "";
+      setPreviewMessage(t("previewLoading"));
+
+      try {
+        const response = await fetch("/api/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(previewPayload()),
+          signal: controller.signal
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Error");
+        if (token !== state.previewToken) return;
+        renderPreview(data.pages || []);
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        setPreviewMessage(error.message);
+      } finally {
+        if (token === state.previewToken) state.previewAbort = null;
+      }
+    }
+
+    const queuePreview = (() => {
+      let timeoutId = null;
+      return () => {
+        if (timeoutId) window.clearTimeout(timeoutId);
+        timeoutId = window.setTimeout(() => {
+          timeoutId = null;
+          updatePreview();
+        }, 350);
+      };
+    })();
+
+    function bindPreviewInputs() {
+      ["pages", "tasks", "doubleSided"].forEach(id => {
+        el(id).addEventListener("change", queuePreview);
+      });
+      ["pages", "tasks"].forEach(id => {
+        el(id).addEventListener("input", queuePreview);
+      });
     }
 
     function payload() {
@@ -846,19 +1057,25 @@ HTML = r"""<!doctype html>
       state.category = "";
       setText();
       renderBoxes();
+      queuePreview();
     });
     el("categoryFilter").addEventListener("change", event => {
       state.category = event.target.value;
       renderBoxes();
     });
-    el("doubleSided").addEventListener("change", () => renderBoxes());
+    el("doubleSided").addEventListener("change", () => {
+      renderBoxes();
+      queuePreview();
+    });
     el("clearBtn").addEventListener("click", clearBoxes);
     el("generateBtn").addEventListener("click", generatePdf);
     el("testPdfBtn").addEventListener("click", generateTestPdf);
 
     el("outputDir").value = DEFAULT_OUTPUT;
     setText();
+    bindPreviewInputs();
     clearBoxes();
+    queuePreview();
   </script>
 </body>
 </html>
@@ -903,6 +1120,20 @@ class ModernHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
 
+        if self.path.startswith("/preview-image/"):
+            file_id = self.path.removeprefix("/preview-image/").split("?", 1)[0]
+            path = PREVIEW_FILES.get(file_id)
+            if not path or not path.exists():
+                self.send_error(404, "Preview not found")
+                return
+            body = path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "image/png")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         if self.path.startswith("/api/open-folder/"):
             file_id = self.path.removeprefix("/api/open-folder/")
             path = GENERATED_FILES.get(file_id)
@@ -921,6 +1152,8 @@ class ModernHandler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
             if self.path == "/api/generate":
                 result = build_pdf(payload)
+            elif self.path == "/api/preview":
+                result = build_preview(payload)
             elif self.path == "/api/generate-test":
                 result = build_all_assignments_pdf(payload)
             else:
