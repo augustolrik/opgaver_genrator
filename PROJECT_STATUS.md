@@ -10,7 +10,7 @@ Danish worksheet generator with a modern HTML GUI, PDF generation, shared metada
 
 - Multiplication levels now generate one-digit × one-digit (easy), one-digit × two-digit (medium), and two-digit × two-digit (hard) problems; the modern GUI preview cache is versioned so old generated previews are not reused.
 - Git: `main...origin/main`; the online Pages version is committed and pushed, alongside pre-existing generated-PDF changes in the working tree.
-- GitHub repository is public and Pages is live at https://augustolrik.github.io/opgaver_genrator/.
+- GitHub repository is public. The partial Pages prototype was taken offline; GitHub Pages is intentionally disabled until the complete modern GUI can be hosted without losing functionality.
 - Remote: `https://github.com/augustolrik/opgaver_genrator.git`.
 - Latest known commit before this file: `8993c74` - `Clean repo layout and add HTML preview` from 2026-07-03.
 - Active root files: `modern_html_app.py`, `shared_app_metadata.py`, `unikke_opgaver_set_up.py`, `start_modern_html_gui.bat`.
@@ -23,7 +23,7 @@ Danish worksheet generator with a modern HTML GUI, PDF generation, shared metada
 
 ## Next Useful Step
 
-If the online version needs more worksheet types, extend the browser generator in `docs/index.html`; the complete local Python generator remains available.
+Choose a complete hosting strategy for the modern GUI: run the existing Python/ReportLab app on a Python-capable host, or complete a full browser port before re-enabling GitHub Pages.
 
 ## Maintenance Rule
 

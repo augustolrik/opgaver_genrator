@@ -1,10 +1,6 @@
 # Opgavegenerator
 
-Dansk matematik-opgavegenerator med en lokal Python-GUI og en enkel onlineversion på GitHub Pages.
-
-## Online
-
-Åbn [opgavegeneratoren online](https://augustolrik.github.io/opgaver_genrator/) for at lave plus-, minus-, gange- og divisionsopgaver i browseren. Brug browserens printdialog til at gemme arket som PDF.
+Dansk matematik-opgavegenerator med en komplet lokal Python-GUI.
 
 ## Lokal version
 
@@ -15,3 +11,5 @@ start_modern_html_gui.bat
 ```
 
 Den lokale version kræver Python-pakkerne, som allerede bruges af projektet, blandt andet ReportLab og PyMuPDF.
+
+GitHub Pages er ikke aktiveret for projektet, fordi den nuværende GUI bruger en Python-server og ReportLab. En offentlig webversion skal derfor enten køre på en Python-kompatibel host eller bygges som en fuld browserport.
