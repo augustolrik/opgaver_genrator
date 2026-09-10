@@ -9,7 +9,8 @@ Danish worksheet generator with a modern HTML GUI, PDF generation, shared metada
 ## Current State
 
 - Multiplication levels now generate one-digit × one-digit (easy), one-digit × two-digit (medium), and two-digit × two-digit (hard) problems; the modern GUI preview cache is versioned so old generated previews are not reused.
-- Git: `main...origin/main`; this change is uncommitted, alongside pre-existing generated-PDF changes in the working tree.
+- Git: `main...origin/main`; the online Pages version is committed and pushed as `e879595`, alongside pre-existing generated-PDF changes in the working tree.
+- GitHub Pages activation is blocked because this private repository's current GitHub plan does not support Pages for private repositories.
 - Remote: `https://github.com/augustolrik/opgaver_genrator.git`.
 - Latest known commit before this file: `8993c74` - `Clean repo layout and add HTML preview` from 2026-07-03.
 - Active root files: `modern_html_app.py`, `shared_app_metadata.py`, `unikke_opgaver_set_up.py`, `start_modern_html_gui.bat`.
@@ -22,7 +23,7 @@ Danish worksheet generator with a modern HTML GUI, PDF generation, shared metada
 
 ## Next Useful Step
 
-If adding worksheet types, wire the task generator, shared metadata, UI labels, and preview behavior together, then generate a small test PDF.
+Make the repository public or use a GitHub plan that supports Pages for private repositories, then enable the existing Pages workflow.
 
 ## Maintenance Rule
 
