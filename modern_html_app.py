@@ -22,6 +22,7 @@ START_PORT = 8765
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = APP_DIR / "random_opgaver_pdf"
 PREVIEW_CACHE_DIR = APP_DIR / ".preview_cache"
+PREVIEW_CACHE_VERSION = "2026-09-10-multiplication-levels"
 LEVELS = ["let", "mellem", "svaer", "random"]
 GENERATED_FILES: dict[str, Path] = {}
 PREVIEW_FILES: dict[str, Path] = {}
@@ -188,6 +189,7 @@ def box_choices_from_payload(payload: dict) -> list[tuple[str, str] | None]:
 
 def preview_signature(payload: dict, tasks: int, pages: int) -> str:
     normalized = {
+        "cacheVersion": PREVIEW_CACHE_VERSION,
         "lang": payload.get("lang", "da"),
         "doubleSided": bool(payload.get("doubleSided")),
         "tasks": tasks,

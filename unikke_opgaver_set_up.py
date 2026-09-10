@@ -481,20 +481,20 @@ def lav_firkant_vinkel_opgave(v1, v2, v3, v4):
     return opgave_tabel
 
 def gange_let():
-    a = random.randint(2, 12)
-    b = random.randint(2, 12)
+    a = random.randint(1, 9)
+    b = random.randint(1, 9)
     return f"{a} x {b} ="
 
 
 def gange_mellem():
-    a = random.randint(11, 25)
-    b = random.randint(13, 99)
+    a = random.randint(1, 9)
+    b = random.randint(10, 99)
     return f"{a} x {b} ="
 
 
 def gange_svaer():
-    a = random.randint(11, 99)
-    b = random.randint(17, 99)
+    a = random.randint(10, 99)
+    b = random.randint(10, 99)
     return f"{a} x {b} ="
 
 
