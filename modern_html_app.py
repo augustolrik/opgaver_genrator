@@ -17,8 +17,12 @@ from shared_app_metadata import CATEGORY_DA, CATEGORY_EN, LEVEL_LABELS, TASK_TEX
 import unikke_opgaver_set_up as opgaver
 
 
-HOST = "127.0.0.1"
-START_PORT = 8765
+HOST = os.environ.get("HOST", "127.0.0.1")
+try:
+    START_PORT = int(os.environ.get("PORT", "8765"))
+except ValueError:
+    START_PORT = 8765
+HOSTED_MODE = os.environ.get("HOSTED_MODE", "0") == "1"
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT_DIR = APP_DIR / "random_opgaver_pdf"
 PREVIEW_CACHE_DIR = APP_DIR / ".preview_cache"
@@ -237,12 +241,12 @@ def build_preview(payload: dict) -> dict[str, object]:
     return {"pages": render_preview_images(pdf_path, signature)}
 
 
-def build_pdf(payload: dict) -> dict[str, str]:
+def build_pdf(payload: dict) -> dict[str, object]:
     choices = box_choices_from_payload(payload)
     pages = clamp_int(payload.get("pages"), 1, 300, 10)
     tasks = clamp_int(payload.get("tasks"), 1, 12, opgaver.ANTAL_OPGAVER_I_BOKS)
     filename = clean_filename(payload.get("filename", "opgaver.pdf"))
-    out_dir = Path(payload.get("outputDir") or DEFAULT_OUTPUT_DIR).expanduser()
+    out_dir = DEFAULT_OUTPUT_DIR if HOSTED_MODE else Path(payload.get("outputDir") or DEFAULT_OUTPUT_DIR).expanduser()
 
     out_dir.mkdir(parents=True, exist_ok=True)
     setup = opgaver.byg_boks_opsaetning(choices, opgaver.BOKS_SKABELONER)
@@ -251,7 +255,12 @@ def build_pdf(payload: dict) -> dict[str, str]:
 
     file_id = quote(str(output_path.resolve()), safe="")
     GENERATED_FILES[file_id] = output_path.resolve()
-    return {"filename": filename, "path": str(output_path), "fileId": file_id}
+    return {
+        "filename": filename,
+        "path": str(output_path),
+        "fileId": file_id,
+        "canOpenFolder": not HOSTED_MODE and os.name == "nt" and hasattr(os, "startfile"),
+    }
 
 
 def build_pdf_from_page_boxes(output_path: Path, page_boxes: list[list[dict]], tasks: int) -> None:
@@ -275,14 +284,14 @@ def build_pdf_from_page_boxes(output_path: Path, page_boxes: list[list[dict]], t
     doc.build(elements, onFirstPage=draw_header, onLaterPages=draw_header)
 
 
-def build_all_assignments_pdf(payload: dict) -> dict[str, str]:
+def build_all_assignments_pdf(payload: dict) -> dict[str, object]:
     lang = payload.get("lang", "da")
     level = payload.get("level", "random")
     if level not in LEVELS:
         level = "random"
 
     filename = clean_filename(payload.get("filename") or TEXT[lang].get("testFilename", "test_all_assignments.pdf"))
-    out_dir = Path(payload.get("outputDir") or DEFAULT_OUTPUT_DIR).expanduser()
+    out_dir = DEFAULT_OUTPUT_DIR if HOSTED_MODE else Path(payload.get("outputDir") or DEFAULT_OUTPUT_DIR).expanduser()
     tasks = clamp_int(payload.get("tasks"), 1, 12, opgaver.ANTAL_OPGAVER_I_BOKS)
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -300,7 +309,12 @@ def build_all_assignments_pdf(payload: dict) -> dict[str, str]:
 
     file_id = quote(str(output_path.resolve()), safe="")
     GENERATED_FILES[file_id] = output_path.resolve()
-    return {"filename": filename, "path": str(output_path), "fileId": file_id}
+    return {
+        "filename": filename,
+        "path": str(output_path),
+        "fileId": file_id,
+        "canOpenFolder": not HOSTED_MODE and os.name == "nt" and hasattr(os, "startfile"),
+    }
 
 
 HTML = r"""<!doctype html>
@@ -1014,7 +1028,8 @@ HTML = r"""<!doctype html>
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Error");
         status.innerHTML = `<strong>${t("done")}:</strong> ${data.path}`;
-        links.innerHTML = `<a href="/pdf/${data.fileId}" target="_blank">${t("openPdf")}</a><a href="/api/open-folder/${data.fileId}">${t("openFolder")}</a>`;
+        const folderLink = data.canOpenFolder ? `<a href="/api/open-folder/${data.fileId}">${t("openFolder")}</a>` : "";
+        links.innerHTML = `<a href="/pdf/${data.fileId}" target="_blank">${t("openPdf")}</a>${folderLink}`;
       } catch (error) {
         status.textContent = error.message;
       } finally {
@@ -1046,7 +1061,8 @@ HTML = r"""<!doctype html>
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Error");
         status.innerHTML = `<strong>${t("done")}:</strong> ${data.path}`;
-        links.innerHTML = `<a href="/pdf/${data.fileId}" target="_blank">${t("openPdf")}</a><a href="/api/open-folder/${data.fileId}">${t("openFolder")}</a>`;
+        const folderLink = data.canOpenFolder ? `<a href="/api/open-folder/${data.fileId}">${t("openFolder")}</a>` : "";
+        links.innerHTML = `<a href="/pdf/${data.fileId}" target="_blank">${t("openPdf")}</a>${folderLink}`;
       } catch (error) {
         status.textContent = error.message;
       } finally {
@@ -1139,7 +1155,7 @@ class ModernHandler(BaseHTTPRequestHandler):
         if self.path.startswith("/api/open-folder/"):
             file_id = self.path.removeprefix("/api/open-folder/")
             path = GENERATED_FILES.get(file_id)
-            if path:
+            if path and not HOSTED_MODE and os.name == "nt" and hasattr(os, "startfile"):
                 os.startfile(path.parent)
             self.send_response(302)
             self.send_header("Location", "/")
@@ -1185,7 +1201,8 @@ def main() -> None:
     server = ThreadingHTTPServer((HOST, port), ModernHandler)
     url = f"http://{HOST}:{port}"
     print(f"Modern HTML GUI running at {url}")
-    threading.Timer(0.4, lambda: webbrowser.open(url)).start()
+    if not HOSTED_MODE:
+        threading.Timer(0.4, lambda: webbrowser.open(url)).start()
     server.serve_forever()
 
 

@@ -1,0 +1,10 @@
+.git
+.github
+.preview_cache
+__pycache__
+*.pyc
+test_pdfs
+random_opgaver_pdf
+legacy_gui
+old_code
+dr_transcripts
