@@ -12,7 +12,7 @@ Danish worksheet generator with a modern HTML GUI, PDF generation, shared metada
 - Git: a complete browser port is prepared for GitHub Pages; pre-existing generated-PDF changes remain uncommitted in the working tree.
 - GitHub repository is public. `docs/index.html` mirrors the modern GUI and runs the generator, preview, and PDF download entirely in the browser.
 - Remote: `https://github.com/augustolrik/opgaver_genrator.git`.
-- GitHub Pages is the intended host; no Render deployment is required.
+- GitHub Pages is live at `https://augustolrik.github.io/opgaver_genrator/`; no Render deployment is required.
 - Active root files: `modern_html_app.py`, `shared_app_metadata.py`, `unikke_opgaver_set_up.py`, `start_modern_html_gui.bat`.
 - Supporting folders: `legacy_gui/`, `old_code/`, `posters/`, `random_opgaver_pdf/`, `test_pdfs/`, `dr_transcripts/`.
 - Prior context: live first-page preview and repo cleanup were already implemented in this checkout.
@@ -23,7 +23,7 @@ Danish worksheet generator with a modern HTML GUI, PDF generation, shared metada
 
 ## Next Useful Step
 
-Push the browser port, enable GitHub Pages from `/docs`, and verify the public URL.
+Keep the public browser version and local Python version in sync when assignment rules change.
 
 ## Maintenance Rule
 
