@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Lav matematikopgaver og download dem som PDF.">
+  <title>Random Opgaver</title>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <style>
+    :root { --bg:#f5f3f8; --panel:rgba(255,255,255,.82); --solid:#fbfaff; --ink:#2f2b3d; --muted:#6c6680; --line:#ddd5e8; --accent:#74639d; --accent2:#8d7db4; --soft:#f1eaf6; --rose:#f7edf4; --shadow:0 18px 50px rgba(73,61,105,.14); }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(circle at 14% 8%,#efe6f6 0,transparent 28rem),radial-gradient(circle at 92% 18%,#e5e9f6 0,transparent 24rem),linear-gradient(135deg,#f7f5fa,#eeebf5 52%,#f8f2f7); font-family:"Aptos","Segoe UI",Arial,sans-serif; }
+    button,input,select { font:inherit; }
+    .shell { width:min(1220px,calc(100% - 32px)); margin:0 auto; padding:28px 0 34px; }
+    .hero { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:center; padding:28px; border:1px solid rgba(255,255,255,.72); border-radius:28px; background:linear-gradient(135deg,rgba(91,82,119,.96),rgba(122,111,158,.92)); box-shadow:var(--shadow); color:#fff; overflow:hidden; position:relative; }
+    .hero:after { content:""; position:absolute; width:280px; height:280px; right:-92px; top:-118px; border-radius:999px; background:rgba(255,255,255,.12); }
+    h1 { margin:0; font-size:clamp(32px,5vw,52px); line-height:.95; letter-spacing:-.03em; }
+    .subtitle { margin-top:12px; max-width:620px; color:#ebe5f2; font-size:16px; }
+    .language { position:relative; z-index:1; display:grid; gap:8px; min-width:160px; }
+    .language label { color:#f5effb; font-size:13px; font-weight:700; }
+    .panel { margin-top:16px; padding:20px; border:1px solid rgba(221,213,232,.9); border-radius:24px; background:var(--panel); box-shadow:var(--shadow); backdrop-filter:blur(18px); }
+    .section-title { margin:0 0 14px; font-size:18px; letter-spacing:-.01em; }
+    .settings { display:grid; grid-template-columns:1.2fr 1.6fr .55fr .65fr; gap:14px; align-items:end; }
+    .field { display:grid; gap:7px; }
+    label { color:var(--muted); font-size:13px; font-weight:750; }
+    input,select { width:100%; min-height:42px; border:1px solid var(--line); border-radius:14px; background:#fff; color:var(--ink); padding:9px 12px; outline:none; box-shadow:inset 0 1px 0 rgba(255,255,255,.8); }
+    input:focus,select:focus { border-color:var(--accent2); box-shadow:0 0 0 4px rgba(141,125,180,.14); }
+    input[disabled] { color:var(--muted); background:#f7f4fa; cursor:not-allowed; }
+    .toggle { display:flex; gap:10px; align-items:center; min-height:42px; padding:0 2px; color:var(--ink); font-weight:700; }
+    .toggle input { width:20px; min-height:20px; accent-color:var(--accent); }
+    .toolbar-stack { display:grid; gap:12px; margin-bottom:14px; }
+    .toolbar,.box-head,.status { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .filter-row,.test-row { display:grid; grid-template-columns:minmax(220px,320px) minmax(0,1fr); gap:12px; align-items:end; }
+    .test-row { grid-template-columns:minmax(220px,320px) auto minmax(0,1fr); padding-top:12px; border-top:1px solid var(--line); }
+    .tip,.preview-copy { max-width:680px; color:var(--muted); font-size:13px; line-height:1.4; }
+    .buttons,.links { display:flex; gap:10px; flex-wrap:wrap; }
+    button { min-height:42px; border:0; border-radius:14px; padding:10px 16px; color:var(--ink); background:#e7dfef; cursor:pointer; font-weight:800; transition:transform 140ms ease,background 140ms ease,box-shadow 140ms ease; }
+    button:hover { transform:translateY(-1px); background:#d9cee8; }
+    button.primary { color:#fff; background:linear-gradient(135deg,#74639d,#5b5277); box-shadow:0 12px 24px rgba(91,82,119,.24); }
+    button:disabled { opacity:.68; cursor:wait; transform:none; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(280px,1fr)); gap:14px; }
+    .box-card { display:grid; gap:12px; padding:15px; border:1px solid var(--line); border-radius:22px; background:linear-gradient(180deg,var(--solid),var(--rose)); }
+    .box-title { font-weight:900; letter-spacing:-.01em; }
+    .pill { padding:4px 9px; border-radius:999px; color:#51486d; background:#eee7f6; font-size:12px; font-weight:850; }
+    .box-fields { display:grid; grid-template-columns:minmax(0,1fr) 140px; gap:10px; }
+    .hint { min-height:34px; color:var(--muted); font-size:13px; line-height:1.35; }
+    .status { margin-top:16px; padding:14px 16px; border-radius:18px; background:rgba(255,255,255,.62); color:var(--muted); }
+    .links a { color:var(--accent); font-weight:900; text-decoration:none; }
+    .links a:hover { text-decoration:underline; }
+    .preview-panel { display:grid; gap:14px; }
+    .preview-status { padding:18px; border:1px dashed var(--line); border-radius:18px; background:rgba(255,255,255,.52); color:var(--muted); text-align:center; }
+    .preview-grid { display:grid; gap:20px; }
+    .preview-page { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:22px 18px 18px; border:1px solid #d8d1df; border-radius:9px; background:#fff; box-shadow:0 10px 26px rgba(73,61,105,.1); }
+    .preview-page-label { grid-column:1/-1; color:var(--muted); font-size:12px; font-weight:800; }
+    .preview-box { min-height:220px; padding:10px; border:1px solid #272332; overflow:hidden; }
+    .preview-box h3 { margin:0 0 3px; font-size:13px; }
+    .preview-box p { margin:0 0 7px; color:#5f586a; font-size:9px; line-height:1.2; }
+    .preview-task { min-height:25px; border-top:1px solid #eee8f2; padding:5px 0 2px; font-size:11px; line-height:1.25; }
+    .preview-task .answer-line { display:inline-block; min-width:32px; border-bottom:1px solid #726b7a; }
+    .visual-mini { display:flex; flex-wrap:wrap; align-items:center; gap:3px; max-width:100%; margin:4px 0; }
+    .visual-mini i { width:8px; height:8px; border:1px solid #4d4855; border-radius:50%; background:#8d7db4; }
+    .visual-mini.square i { border-radius:2px; background:#e9c46a; }
+    .footer { margin-top:18px; color:var(--muted); font-size:12px; text-align:center; }
+    .footer a { color:var(--accent); }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media (max-width:900px) { .hero,.settings,.grid,.filter-row,.test-row { grid-template-columns:1fr; } .box-fields { grid-template-columns:1fr; } .status { align-items:flex-start; flex-direction:column; } }
+    @media (max-width:620px) { .shell { width:min(100% - 20px,620px); padding-top:16px; } .hero { padding:22px; } .preview-page { grid-template-columns:1fr; } .preview-page-label { grid-column:auto; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div><h1 id="appTitle"></h1><div class="subtitle" id="subtitle"></div></div>
+      <div class="language"><label id="languageLabel" for="language"></label><select id="language"><option value="da">Dansk</option><option value="en">English</option></select></div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title" id="setupTitle"></h2>
+      <div class="settings">
+        <div class="field"><label id="filenameLabel" for="filename"></label><input id="filename" value="opgaver.pdf"></div>
+        <div class="field"><label id="outputLabel" for="outputDir"></label><input id="outputDir" value="Browserens download-mappe" disabled></div>
+        <div class="field"><label id="pagesLabel" for="pages"></label><input id="pages" type="number" min="1" max="300" value="10"></div>
+        <div class="field"><label id="tasksLabel" for="tasks"></label><input id="tasks" type="number" min="1" max="12" value="5"></div>
+      </div>
+      <label class="toggle"><input id="doubleSided" type="checkbox"><span id="doubleSidedLabel"></span></label>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar-stack">
+        <div class="toolbar"><div><h2 class="section-title" id="boxesTitle"></h2><div class="tip" id="tip"></div></div><div class="buttons"><button id="clearBtn" type="button"></button><button id="generateBtn" class="primary" type="button"></button></div></div>
+        <div class="filter-row"><div class="field"><label id="filterLabel" for="categoryFilter"></label><select id="categoryFilter"></select></div></div>
+        <div class="test-row"><div class="field"><label id="testLevelLabel" for="testLevel"></label><select id="testLevel"></select></div><button id="testPdfBtn" type="button"></button><div class="tip" id="testPdfText"></div></div>
+      </div>
+      <div id="boxes" class="grid"></div>
+      <div class="status"><div id="statusText"></div><div id="resultLinks" class="links"></div></div>
+    </section>
+
+    <section class="panel preview-panel"><div><h2 class="section-title" id="previewTitle"></h2><div class="preview-copy" id="previewText"></div></div><div id="previewStatus" class="preview-status"></div><div id="previewPages" class="preview-grid"></div></section>
+    <div class="footer">Den komplette browser-version kører lokalt i din browser. <a href="https://github.com/augustolrik/opgaver_genrator" target="_blank" rel="noreferrer">Se projektet på GitHub</a>.</div>
+  </main>
+
+  <script>
+    const LEVELS = ["let", "mellem", "svaer", "random"];
+    const LEVEL_LABELS = { da:{let:"Let",mellem:"Mellem",svaer:"Svær",random:"Blandet"}, en:{let:"Easy",mellem:"Medium",svaer:"Hard",random:"Mixed"} };
+    const TEXT = {
+      da:{appTitle:"Random Opgaver",subtitle:"PDF-generator til matematikark.",language:"Sprog",setup:"Opsætning",filename:"Filnavn",output:"Download",pages:"Sider",tasks:"Opgaver pr. firkant",doubleSided:"8 firkanter til dobbeltsidet print",boxes:"Firkantvalg",assignment:"Opgavetype",level:"Niveau",empty:"Tom firkant",generate:"Byg PDF",filter:"Sortering",allCategories:"Alle kategorier",testLevel:"Testniveau",generateTest:"Lav test-PDF",testPdfText:"Lav en PDF med alle opgavetyper, så du hurtigt kan se layout og niveau.",preview:"Forhåndsvisning",previewText:"Forhåndsvisningen opdateres automatisk, når du ændrer opsætningen.",previewLoading:"Opdaterer forhåndsvisning...",previewEmpty:"Vælg opgavetyper for at se de første sider her.",pageLabel:"Side",clear:"Ryd",ready:"Klar til at bygge.",building:"Bygger PDF...",done:"PDF færdig",openPdf:"Åbn PDF",downloadPdf:"Download PDF",max:"maks",skipped:"Denne firkant springes over.",tip:"Vælg op til 4 firkanter. Ved dobbeltsidet print bruges firkant 1-4 på forsiden og 5-8 på bagsiden.",error:"Der opstod en fejl"},
+      en:{appTitle:"Random Assignments",subtitle:"PDF generator for math worksheets.",language:"Language",setup:"Setup",filename:"File name",output:"Download",pages:"Pages",tasks:"Tasks per box",doubleSided:"8 boxes for double-sided print",boxes:"Box setup",assignment:"Assignment type",level:"Level",empty:"Empty box",generate:"Generate PDF",filter:"Filter",allCategories:"All categories",testLevel:"Test level",generateTest:"Generate test PDF",testPdfText:"Create a PDF with every assignment type so you can review layout and difficulty.",preview:"Preview",previewText:"The preview updates automatically when you change the setup.",previewLoading:"Updating preview...",previewEmpty:"Choose assignment types to see the first pages here.",pageLabel:"Page",clear:"Clear",ready:"Ready to build.",building:"Building PDF...",done:"PDF ready",openPdf:"Open PDF",downloadPdf:"Download PDF",max:"max",skipped:"This box is skipped.",tip:"Choose up to 4 boxes. With double-sided print, boxes 1-4 are on the front and 5-8 on the back.",error:"An error occurred"}
+    };
+    const TASKS = [
+      ["plus",null,"Plus","Addition","Regning","Arithmetic","Regn stykkerne og skriv svaret.","Calculate each addition problem and write the answer."],
+      ["visuel_plus",2,"Visuel plus","Visual addition","Visuelle opgaver","Visual tasks","Tæl tingene og skriv svaret.","Count the objects and write the answer."],
+      ["minus",null,"Minus","Subtraction","Regning","Arithmetic","Regn stykkerne og skriv svaret.","Calculate each subtraction problem and write the answer."],
+      ["visuel_minus",2,"Visuel minus","Visual subtraction","Visuelle opgaver","Visual tasks","Streg fra og skriv hvor mange der er tilbage.","Cross out objects and write how many are left."],
+      ["gange",null,"Gange","Multiplication","Regning","Arithmetic","Regn stykkerne og skriv svaret.","Calculate each multiplication problem and write the answer."],
+      ["visuel_gange",2,"Visuel gange","Visual multiplication","Visuelle opgaver","Visual tasks","Tæl rækker og kolonner, og skriv gangestykket.","Count rows and columns, then write the multiplication."],
+      ["division",null,"Division","Division","Regning","Arithmetic","Regn stykkerne og skriv svaret.","Calculate each division problem and write the answer."],
+      ["visuel_division",2,"Visuel division","Visual division","Visuelle opgaver","Visual tasks","Del tingene ligeligt og skriv svaret.","Share the objects equally and write the answer."],
+      ["visuel_division_2",2,"Kagedeling","Cake sharing","Visuelle opgaver","Visual tasks","Del kagerne ligeligt mellem dem der spiser.","Share the cakes equally between the people eating."],
+      ["procent",null,"Procent","Percent","Regning","Arithmetic","Regn stykkerne og skriv svaret.","Calculate each percent problem and write the answer."],
+      ["broeker",null,"Brøker","Fractions","Regning","Arithmetic","Regn brøk-opgaverne og skriv svaret.","Calculate the fraction problems and write the answer."],
+      ["visuel_procent",2,"Visuel procent","Visual percent","Visuelle opgaver","Visual tasks","Find hvor mange procent af felterne der er farvet.","Find what percent of the squares are colored."],
+      ["visuel_broek",2,"Visuel brøk","Visual fraction","Visuelle opgaver","Visual tasks","Skriv brøken for den farvede del.","Write the fraction for the colored part."],
+      ["visuel_areal",2,"Visuel areal","Visual area","Visuelle opgaver","Visual tasks","Hvor mange kager kan der laves af kagedejen?","Find how many cakes can be made from the dough."],
+      ["areal_firkant",null,"Areal af firkanter","Area of rectangles","Geometri","Geometry","Find arealet i hver opgave.","Find the area in each problem."],
+      ["omkreds_firkant",null,"Omkreds af firkanter","Perimeter of rectangles","Geometri","Geometry","Find omkredsen i hver opgave.","Find the perimeter in each problem."],
+      ["areal_trekant",null,"Areal af trekanter","Area of triangles","Geometri","Geometry","Find arealet i hver opgave.","Find the area in each problem."],
+      ["areal_cirkel",null,"Areal af cirkler","Area of circles","Geometri","Geometry","Find arealet i hver opgave.","Find the area in each problem."],
+      ["omkreds_cirkel",null,"Omkreds af cirkler","Circumference of circles","Geometri","Geometry","Find omkredsen i hver opgave.","Find the circumference in each problem."],
+      ["pytagoras",null,"Pytagoras","Pythagoras","Geometri","Geometry","Brug a² + b² = c² til at finde den manglende side.","Use a^2 + b^2 = c^2 to find the missing side."],
+      ["cykeltid",null,"Cykeltid","Cycling time","Tid","Time","Regn ud hvor lang tid turen tager.","Calculate how long the trip takes."],
+      ["ligninger",null,"Ligninger","Equations","Algebra og tal","Algebra and numbers","Find x eller find x og y i hver opgave.","Find x, or find x and y, in each problem."],
+      ["klokke",null,"Klokke","Clock","Tid","Time","Find hvor lang tid der er mellem de to klokkesæt.","Find the time between the two clock times."],
+      ["talpyramide",4,"Talpyramider","Number pyramids","Mønstre og logik","Patterns and logic","Læg de to felter under sammen.","Add the two lower boxes together."],
+      ["gangepyramide",4,"Gangepyramider","Multiplication pyramids","Mønstre og logik","Patterns and logic","Gang de to felter under sammen.","Multiply the two lower boxes together."],
+      ["lav_tallet",null,"Lav tallet","Make the number","Algebra og tal","Algebra and numbers","Byg tallet med gange af primtal.","Build the number by multiplying prime numbers."],
+      ["find_primtal",null,"Find primtal","Find primes","Algebra og tal","Algebra and numbers","Find primtal blandt tallene.","Find the prime numbers among the numbers."],
+      ["rangering_regnestykker",2,"Ranger regnestykker","Order calculations","Mønstre og logik","Patterns and logic","Brug overslag. Sæt fra mindst til størst.","Use estimation. Put the calculations from smallest to largest."],
+      ["rutespil",1,"Rutespil","Route game","Mønstre og logik","Patterns and logic","Find 3 veje ned til de rigtige tal.","Find three paths down to the correct numbers."],
+      ["vinkel_trekant",3,"Trekantvinkler","Triangle angles","Geometri","Geometry","Find den skjulte vinkel.","Find the hidden angle."],
+      ["vinkel_firkant",3,"Firkantvinkler","Quadrilateral angles","Geometri","Geometry","Find den skjulte vinkel.","Find the hidden angle."],
+      ["labyrint_spil",1,"Labyrint spil","Maze game","Mønstre og logik","Patterns and logic","Gå fra START til SLUT gennem labyrinten.","Go from START to FINISH through the maze."],
+      ["raekkefoelger",null,"Rækkefølger","Sequences","Mønstre og logik","Patterns and logic","Find mønsteret og skriv det manglende led.","Find the pattern and write the missing term."],
+      ["kode_opgaver",2,"Programmeringskode","Programming code","Mønstre og logik","Patterns and logic","Læs koden fra top til bund. Skriv værdien til sidst.","Read the code from top to bottom and find the final value."],
+      ["hemmelige_koder",4,"Hemmelige koder","Secret codes","Mønstre og logik","Patterns and logic","Knæk koden og skriv den hemmelige besked.","Crack the code and write the hidden message."],
+      ["laes_og_forstaa",2,"Læs og forstå matematik","Read and understand math","Matematiklæsning","Math reading","Læs teksten. Find oplysningerne og løs opgaven.","Read the text. Find the information you need and solve the problem."]
+    ].map(([name,max,daTitle,enTitle,daCat,enCat,daHint,enHint])=>({name,max,da:{title:daTitle,category:daCat,hint:daHint},en:{title:enTitle,category:enCat,hint:enHint}}));
+
+    const state = { lang:"da", category:"", boxes:[], previewTimer:null, lastUrl:null };
+    const el = id => document.getElementById(id);
+    const t = key => TEXT[state.lang][key];
+    const info = name => TASKS.find(task => task.name === name);
+    const integer = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
+    const pick = list => list[Math.floor(Math.random()*list.length)];
+    const levelOf = level => level === "random" ? pick(["let","let","mellem","mellem","svaer"]) : level;
+    const problem = (prompt, answer, extra={}) => ({prompt,answer,...extra});
+    const range = (level, easy, medium, hard) => { const l=levelOf(level); return l==="let"?easy():l==="mellem"?medium():hard(); };
+
+    function generate(name, requestedLevel="random") {
+      const l = levelOf(requestedLevel);
+      const basic = (op, a, b) => problem(`${a} ${op} ${b} =`, ({"+":a+b,"−":a-b,"×":a*b,"÷":a/b})[op]);
+      if(name==="gange") return l==="let"?basic("×",integer(1,9),integer(1,9)):l==="mellem"?basic("×",integer(1,9),integer(10,99)):basic("×",integer(10,99),integer(10,99));
+      if(name==="plus") return l==="let"?basic("+",integer(10,99),integer(10,99)):l==="mellem"?basic("+",integer(100,999),integer(100,999)):basic("+",integer(1000,9999),integer(1000,9999));
+      if(name==="minus") { const a=l==="let"?integer(20,99):l==="mellem"?integer(100,999):integer(1000,9999); const b=integer(l==="svaer"?100:10,a-1); return basic("−",a,b); }
+      if(name==="division") { const b=l==="let"?integer(2,10):l==="mellem"?integer(6,33):integer(13,40); const answer=l==="let"?integer(2,10):l==="mellem"?integer(6,20):integer(11,66); return basic("÷",b*answer,b); }
+      if(name==="procent") { const p=l==="let"?pick([10,20,25,50]):l==="mellem"?pick([5,10,15,20,25,30,40,50]):pick([12,18,35,45,60,75]); const a=l==="let"?pick([20,40,60,80,100,200,400]):integer(20,l==="mellem"?500:1000); return problem(`Hvad er ${p}% af ${a}?`,a*p/100); }
+      if(name==="broeker") { const d1=pick([2,3,4,5,6,8,10,12]),d2=pick([2,3,4,5,6,8,10,12]),n1=integer(1,d1-1),n2=integer(1,d2-1),op=pick(["+","−"]); return problem(`${n1}/${d1} ${op} ${n2}/${d2} =`,null); }
+      if(name==="visuel_plus") { const a=l==="let"?integer(2,8):l==="mellem"?integer(6,14):integer(10,18); const b=l==="let"?integer(2,8):l==="mellem"?integer(6,14):integer(10,18); return problem(`Hvor mange ting er der i alt? ${a} + ${b} =`,a+b,{visual:{type:"dots",count:a+b,color:"#2a9d8f"}}); }
+      if(name==="visuel_minus") { const a=l==="let"?integer(6,14):l==="mellem"?integer(12,22):integer(20,30); const b=integer(2,a-(l==="let"?2:l==="mellem"?4:6)); return problem(`Kryds ${b} ud. ${a} − ${b} =`,a-b,{visual:{type:"crossdots",count:a,cross:b,color:"#4dabf7"}}); }
+      if(name==="visuel_gange") { const rows=l==="let"?pick([2,3,4]):l==="mellem"?integer(3,6):integer(5,7),cols=l==="let"?integer(2,6):l==="mellem"?integer(4,8):integer(6,9); return problem(`${rows} rækker med ${cols} i hver. ${rows} × ${cols} =`,rows*cols,{visual:{type:"rows",rows,cols,color:l==="let"?"#2a9d8f":l==="mellem"?"#e9c46a":"#e76f51"}}); }
+      if(name==="visuel_division") { const groups=l==="let"?pick([2,3,4]):l==="mellem"?pick([3,4,5,6]):pick([5,6,7,8]); const each=l==="let"?integer(2,6):l==="mellem"?integer(3,8):integer(4,6); return problem(`${groups*each} ting deles i ${groups} grupper. ${groups*each} ÷ ${groups} =`,each,{visual:{type:"groups",count:groups*each,groups,color:"#4dabf7"}}); }
+      if(name==="visuel_division_2") { const people=l==="let"?pick([2,3]):l==="mellem"?pick([2,3,4]):pick([3,4,5]); const each=l==="let"?pick([1,2,3]):pick([2,3,4]); return problem(`${people*each} kager deles mellem ${people}. ${people*each} ÷ ${people} =`,each,{visual:{type:"cakes",count:people*each,groups:people,color:"#f4d35e"}}); }
+      if(name==="visuel_procent"||name==="visuel_broek") { const total=pick([10,20,25,50]), colored=integer(1,total-1); return problem(name==="visuel_procent"?`Hvor mange procent er farvet? ${colored} af ${total}`:`Skriv brøken for den farvede del: ${colored}/${total}`,name==="visuel_procent"?colored/total*100:`${colored}/${total}`,{visual:{type:"squares",count:total,cross:colored,color:"#e9c46a"}}); }
+      if(name==="visuel_areal") { const trays=l==="let"?pick([6,8,10]):l==="mellem"?pick([12,16,20]):pick([20,24,30]), perCake=pick([2,4,5]); return problem(`${trays} kager kan laves af dejen. Der bruges ${perCake} dl pr. kage. Hvor mange dl?`,trays*perCake,{visual:{type:"cakes",count:trays,groups:1,color:"#f4d35e"}}); }
+      if(name==="areal_firkant"||name==="omkreds_firkant") { const a=l==="let"?integer(2,12):l==="mellem"?integer(10,35):integer(12,40),b=l==="let"?integer(2,12):l==="mellem"?integer(5,25):integer(8,30); return problem(`${name==="areal_firkant"?"Areal":"Omkreds"}: længde ${a} m og bredde ${b} m.`,name==="areal_firkant"?a*b:2*(a+b)); }
+      if(name==="areal_trekant") { const a=l==="let"?integer(2,12):l==="mellem"?integer(8,24):integer(12,36),b=l==="let"?integer(2,12):l==="mellem"?integer(6,20):integer(10,28); return problem(`Areal af trekant: grundlinje ${a} m og højde ${b} m.`,a*b/2); }
+      if(name==="areal_cirkel"||name==="omkreds_cirkel") { const r=l==="mellem"?null:integer(l==="svaer"?5:2,l==="svaer"?20:10),d=r?null:integer(6,24); const val=r?`radius ${r}`:`diameter ${d}`; return problem(`${name==="areal_cirkel"?"Areal":"Omkreds"} af cirkel med ${val}. Brug π.`,null); }
+      if(name==="pytagoras") { const triple=pick([[3,4,5],[5,12,13],[7,24,25],[9,12,15],[12,16,20],[20,21,29]]),unknown=pick(["a","b","c"]); return problem(`Retvinklet trekant: a = ${triple[0]} cm, b = ${triple[1]} cm, c = ${triple[2]} cm. Find ${unknown}.`,triple[unknown==="a"?0:unknown==="b"?1:2]); }
+      if(name==="cykeltid") { const speed=pick(l==="let"?[10,12,15,20]:l==="mellem"?[12,14,16,18,20,24]:[9,11,13,15,18,22]),distance=pick(l==="let"?[5,10,15,20,25,30]:l==="mellem"?[12,18,24,30,36,42,48]:[14,21,28,35,44,55,66]); return problem(`Hvor lang tid tager ${distance} km ved ${speed} km/t?`,`${distance/speed} timer`); }
+      if(name==="ligninger") { const x=integer(1,l==="svaer"?10:30),a=integer(1,12); return l==="let"?problem(`x + ${a} = ${x+a}`,x):l==="mellem"?problem(`${a}x = ${a*x}`,x):problem(`${integer(1,5)}x + ${integer(1,5)}y = ${x+a}; ${integer(1,5)}x + ${integer(1,5)}y = ?`,`${x}, ${a}`); }
+      if(name==="klokke") { const h=integer(1,18),m=pick([0,10,15,20,25,30,40,45,50,55]),diff=pick([15,20,25,30,40,50,60,75,90,105]); const end=h*60+m+diff; return problem(`Fra kl. ${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} til kl. ${String(Math.floor(end/60)).padStart(2,"0")}:${String(end%60).padStart(2,"0")}?`,`${diff} minutter`); }
+      if(name==="talpyramide"||name==="gangepyramide") { const mult=name==="gangepyramide", base=Array.from({length:4},()=>integer(mult?1:1,mult?(l==="svaer"?8:6):(l==="svaer"?30:l==="mellem"?15:9))), layers=[base]; while(layers[0].length>1){const prev=layers[0],next=[]; for(let i=0;i<prev.length-1;i++) next.push(mult?prev[i]*prev[i+1]:prev[i]+prev[i+1]); layers.unshift(next);} const visible=layers.map(row=>row.map(v=>Math.random()>.48?String(v):"□")); return problem(`${mult?"Gang":"Læg"} nabofelterne sammen i pyramiden.`,null,{visual:{type:"pyramid",layers:visible}}); }
+      if(name==="lav_tallet") { const primes=l==="let"?[2,3,5,7]:l==="mellem"?[2,3,5,7,11]:[2,3,5,7,11,13], factors=Array.from({length:l==="svaer"?4:3},()=>pick(primes)), total=factors.reduce((a,b)=>a*b,1); return problem(`Lav tallet ${total} ved kun at gange med primtallene ${primes.join(", ")}.`,factors.join(" × ")); }
+      if(name==="find_primtal") { const primes=[2,3,5,7,11,13,17,19,23,29], numbers=[...Array.from({length:3},()=>pick(primes)),...Array.from({length:3},()=>integer(4,40))]; return problem(`Find primtallene: ${numbers.sort(()=>Math.random()-.5).join(", ")}`,null); }
+      if(name==="rangering_regnestykker") { const nums=Array.from({length:4},()=>basic("×",integer(10,99),integer(2,12)).prompt.slice(0,-1)); return problem(`Sæt fra mindst til størst: ${nums.join("   ")}`,null); }
+      if(name==="rutespil") { const target=integer(10,40); return problem(`Find tre veje gennem ruten, der giver tallet ${target}.`,null,{visual:{type:"route",target}}); }
+      if(name==="vinkel_trekant") { const a=integer(25,75),b=integer(25,75),c=180-a-b; return problem(`Trekantens vinkler er ${a}°, ${b}° og x°. Find x.`,c>15?c:60); }
+      if(name==="vinkel_firkant") { const vals=[integer(50,120),integer(50,120),integer(50,120)]; return problem(`En firkant har vinklerne ${vals.join("°, ")}° og x°. Find x.`,360-vals.reduce((a,b)=>a+b,0)); }
+      if(name==="labyrint_spil") return problem("Gå fra START til SLUT gennem labyrinten.",null,{visual:{type:"maze"}});
+      if(name==="raekkefoelger") { const start=integer(2,15),step=pick([2,3,4,5,10]),seq=Array.from({length:6},(_,i)=>start+step*i),hole=integer(2,5),answer=seq[hole]; seq[hole]="□"; return problem(`Find det manglende tal: ${seq.join(", ")}`,answer); }
+      if(name==="kode_opgaver") { const start=integer(2,9),factor=integer(2,4),add=integer(1,9); return problem(`Kode: tal = ${start}; tal = tal × ${factor}; tal = tal + ${add}. Hvad er tallet?`,start*factor+add); }
+      if(name==="hemmelige_koder") { const word=pick(["SOL","MATEMATIK","KAGE","SKOLE"]),shift=integer(1,3); return problem(`A=1, B=2... Flyt hvert bogstav ${shift} plads frem. Knæk koden for: ${word.split("").map(ch=>ch.charCodeAt(0)-64+shift).join("-")}`,word); }
+      if(name==="laes_og_forstaa") { const price=integer(5,25),count=integer(2,8); return problem(`En bog koster ${price} kr. Sara køber ${count}. Hvor meget betaler hun?`,price*count+" kr."); }
+      return problem(info(name)?.da.hint||"Løs opgaven.",null);
+    }
+
+    function ensureBoxCount(){ const count=el("doubleSided").checked?8:4; while(state.boxes.length<count)state.boxes.push({name:"",level:"random"}); state.boxes=state.boxes.slice(0,count); }
+    function categories(){ return [...new Set(TASKS.map(x=>x[state.lang].category))].sort((a,b)=>a.localeCompare(b)); }
+    function visibleTasks(){ return state.category?TASKS.filter(x=>x[state.lang].category===state.category):TASKS; }
+    function taskLabel(task){ return `${task[state.lang].category} · ${task[state.lang].title}${task.max?` (${t("max")} ${task.max})`:""}`; }
+    function setText(){ document.documentElement.lang=state.lang; ["appTitle","subtitle","languageLabel","setupTitle","filenameLabel","outputLabel","pagesLabel","tasksLabel","doubleSidedLabel","boxesTitle","tip","filterLabel","testLevelLabel","testPdfText","previewTitle","previewText","clearBtn","generateBtn","testPdfBtn"].forEach(id=>{ const key={appTitle:"appTitle",subtitle:"subtitle",languageLabel:"language",setupTitle:"setup",filenameLabel:"filename",outputLabel:"output",pagesLabel:"pages",tasksLabel:"tasks",doubleSidedLabel:"doubleSided",boxesTitle:"boxes",tip:"tip",filterLabel:"filter",testLevelLabel:"testLevel",testPdfText:"testPdfText",previewTitle:"preview",previewText:"previewText",clearBtn:"clear",generateBtn:"generate",testPdfBtn:"generateTest"}[id]; if(el(id))el(id).textContent=t(key); }); renderCategoryFilter(); renderTestLevel(); if(!el("statusText").dataset.locked)el("statusText").textContent=t("ready"); }
+    function renderCategoryFilter(){ const select=el("categoryFilter"),all=categories(); if(!all.includes(state.category))state.category=""; select.innerHTML=`<option value="">${t("allCategories")}</option>`+all.map(x=>`<option value="${x}">${x}</option>`).join(""); select.value=state.category; }
+    function renderTestLevel(){ const select=el("testLevel"),current=select.value||"random"; select.innerHTML=LEVELS.map(x=>`<option value="${x}">${LEVEL_LABELS[state.lang][x]}</option>`).join(""); select.value=LEVELS.includes(current)?current:"random"; }
+    function renderBoxes(){ ensureBoxCount(); const root=el("boxes"); root.innerHTML=""; state.boxes.forEach((box,index)=>{ const card=document.createElement("article"); card.className="box-card"; const task=info(box.name); const options=`<option value="">${t("empty")}</option>`+(task&&!visibleTasks().includes(task)?`<option value="${task.name}">${taskLabel(task)}</option>`:"")+visibleTasks().map(x=>`<option value="${x.name}">${taskLabel(x)}</option>`).join(""); card.innerHTML=`<div class="box-head"><div class="box-title">${t("boxes")} ${index+1}</div><div class="pill">${index+1}</div></div><div class="box-fields"><div class="field"><label>${t("assignment")}</label><select class="task-select">${options}</select></div><div class="field"><label>${t("level")}</label><select class="level-select">${LEVELS.map(x=>`<option value="${x}">${LEVEL_LABELS[state.lang][x]}</option>`).join("")}</select></div></div><div class="hint"></div>`; const ts=card.querySelector(".task-select"),ls=card.querySelector(".level-select"); ts.value=box.name; ls.value=box.level||"random"; ts.addEventListener("change",()=>{box.name=ts.value;updateHint(card,box);queuePreview();}); ls.addEventListener("change",()=>{box.level=ls.value;queuePreview();}); updateHint(card,box); root.append(card); }); }
+    function updateHint(card,box){ const hint=card.querySelector(".hint"),task=info(box.name); hint.textContent=task?task[state.lang].hint+(task.max?` (${t("max")} ${task.max})`:""):t("skipped"); }
+    function clearBoxes(){ state.boxes=Array.from({length:el("doubleSided").checked?8:4},()=>({name:"",level:"random"})); renderBoxes(); queuePreview(); }
+    function visualHtml(v){ if(!v)return""; if(v.type==="pyramid")return `<div class="visual-mini">${v.layers.flat().map(x=>`<i title="${x}">${x==="□"?"":""}</i>`).join("")}</div>`; if(v.type==="maze")return `<div class="visual-mini square">${Array.from({length:25},(_,i)=>`<i style="opacity:${[0,1,5,6,7,12,17,18,19,24].includes(i)?1:.35}"></i>`).join("")}</div>`; const count=v.count||((v.rows||1)*(v.cols||1)); return `<div class="visual-mini ${v.type==="squares"?"square":""}">${Array.from({length:Math.min(count,48)},(_,i)=>`<i style="background:${v.color||"#8d7db4"};opacity:${v.cross && i < v.cross ? .55 : 1}"></i>`).join("")}</div>`; }
+    function taskHtml(task){ return `<div class="preview-task">${visualHtml(task.visual)}<span>${String(task.prompt).replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>")}</span> <span class="answer-line"></span></div>`; }
+    function boxHtml(box){ const task=info(box.name); if(!task)return `<article class="preview-box"><h3>—</h3><p>${t("skipped")}</p></article>`; const count=Math.min(Number(el("tasks").value)||5,task.max||99),tasks=Array.from({length:count},()=>generate(box.name,box.level)); return `<article class="preview-box"><h3>${task[state.lang].title}</h3><p>${task[state.lang].hint}</p>${tasks.map(taskHtml).join("")}</article>`; }
+    function updatePreview(){ ensureBoxCount(); const root=el("previewPages");root.innerHTML="";const active=state.boxes.some(x=>x.name); if(!active){el("previewStatus").hidden=false;el("previewStatus").textContent=t("previewEmpty");return;} el("previewStatus").hidden=true; const pages=el("doubleSided").checked?2:1; for(let p=0;p<pages;p++){const choices=el("doubleSided").checked?(p===0?state.boxes.slice(0,4):state.boxes.slice(4,8)):state.boxes.slice(0,4);const page=document.createElement("section");page.className="preview-page";page.innerHTML=`<div class="preview-page-label">${t("pageLabel")} ${p+1}</div>${choices.map(boxHtml).join("")}`;root.append(page);} }
+    function queuePreview(){ if(state.previewTimer)clearTimeout(state.previewTimer); el("previewStatus").hidden=false;el("previewStatus").textContent=t("previewLoading"); state.previewTimer=setTimeout(()=>{state.previewTimer=null;updatePreview();},260); }
+    function payload(){ ensureBoxCount(); return {filename:el("filename").value,pages:Math.max(1,Math.min(300,Number(el("pages").value)||10)),tasks:Math.max(1,Math.min(12,Number(el("tasks").value)||5)),doubleSided:el("doubleSided").checked,boxes:state.boxes.map(x=>({...x}))}; }
+
+    function pdfText(doc,text,x,y,width,size=8.5,line=4){ doc.setFontSize(size); const lines=doc.splitTextToSize(String(text).replace(/\n/g," "),width); doc.text(lines,x,y); return y+lines.length*line; }
+    function drawHeader(doc,page){ doc.setFont("helvetica","bold");doc.setFontSize(15);doc.text("Random Opgaver",14,15);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text(`${state.lang==="da"?"Side":"Page"} ${page}`,14,21);doc.text(state.lang==="da"?"Navn:":"Name:",145,15);doc.line(160,15,196,15); }
+    function drawVisual(doc,v,x,y,w){ if(!v)return y; if(v.type==="pyramid"){ const rows=v.layers; rows.forEach((row,r)=>{const start=x+(rows.length-row.length)*7; row.forEach((val,c)=>{doc.rect(start+c*14,y+r*10,12,8);if(val!=="□")doc.setFontSize(7),doc.text(String(val),start+c*14+6,y+r*10+5.5,{align:"center"});});});return y+rows.length*10+3; } if(v.type==="maze"){ for(let r=0;r<5;r++)for(let c=0;c<5;c++){doc.rect(x+c*7,y+r*7,7,7);if((r+c)%3===0)doc.line(x+c*7,y+r*7,x+c*7+7,y+r*7+7);}return y+38; } const count=v.count||((v.rows||1)*(v.cols||1));const max=40;for(let i=0;i<Math.min(count,max);i++){const c=i%10,r=Math.floor(i/10); if(v.type==="squares")doc.setFillColor(233,196,106),doc.rect(x+c*5,y+r*5,4,4,"F");else doc.setFillColor(141,125,180),doc.circle(x+2+c*5,y+2+r*5,1.6,"F");}return y+Math.ceil(Math.min(count,max)/10)*5+3; }
+    function drawTask(doc,task,x,y,w){ const before=y; y=drawVisual(doc,task.visual,x,y,w); const lines=doc.splitTextToSize(String(task.prompt).replace(/\n/g," "),w);doc.setFont("helvetica","normal");doc.setFontSize(8.2);doc.text(lines,x,y);y+=lines.length*3.8;doc.line(x+w-24,y-1,x+w,y-1);return Math.max(y,before+9)+3; }
+    function drawBox(doc,box,x,y,w,h,tasks){ doc.setDrawColor(39,35,50);doc.setLineWidth(.35);doc.rect(x,y,w,h);const task=info(box.name);if(!task){doc.setFontSize(9);doc.text(t("empty"),x+5,y+9);return;}doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text(task[state.lang].title,x+5,y+8);doc.setFont("helvetica","normal");let cursor=pdfText(doc,task[state.lang].hint,x+5,y+14,w-10,6.7,3);cursor+=1;const count=Math.min(tasks,task.max||99);for(let i=0;i<count;i++){cursor=drawTask(doc,generate(box.name,box.level),x+5,cursor,w-10);if(cursor>y+h-5)break;} }
+    function cleanFilename(value){ let name=String(value||"opgaver.pdf").trim().replace(/[^\w .()\-æøåÆØÅ]/g,"_"); if(!name.toLowerCase().endsWith(".pdf"))name+=".pdf";return name; }
+    function buildDocument(pages,filename,tasks){ if(!window.jspdf?.jsPDF)throw new Error("PDF-biblioteket kunne ikke indlæses. Tjek internetforbindelsen og prøv igen."); const doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"});const W=210,H=297,mx=12,top=28,gap=4,bw=(W-mx*2-gap)/2,bh=(H-top-18-gap)/2; pages.forEach((boxes,pageIndex)=>{if(pageIndex)doc.addPage();drawHeader(doc,pageIndex+1);boxes.forEach((box,i)=>drawBox(doc,box,mx+(i%2)*(bw+gap),top+Math.floor(i/2)*(bh+gap),bw,bh,tasks));}); const blob=doc.output("blob"); if(state.lastUrl)URL.revokeObjectURL(state.lastUrl);state.lastUrl=URL.createObjectURL(blob);return {blob,url:state.lastUrl,filename:cleanFilename(filename)}; }
+    function showResult(result){el("statusText").innerHTML=`<strong>${t("done")}:</strong> ${result.filename}`;el("resultLinks").innerHTML=`<a href="${result.url}" target="_blank" rel="noreferrer">${t("openPdf")}</a><a href="${result.url}" download="${result.filename}">${t("downloadPdf")}</a>`;}
+    function generatePdf(){ const button=el("generateBtn"),status=el("statusText");button.disabled=true;status.dataset.locked="1";status.textContent=t("building");el("resultLinks").innerHTML="";try{const data=payload(),pages=[];for(let i=0;i<data.pages;i++)pages.push(data.doubleSided?(i%2===0?data.boxes.slice(0,4):data.boxes.slice(4,8)):data.boxes.slice(0,4));showResult(buildDocument(pages,data.filename,data.tasks));}catch(error){status.textContent=`${t("error")}: ${error.message}`;}finally{button.disabled=false;} }
+    function generateTestPdf(){ const button=el("testPdfBtn"),status=el("statusText");button.disabled=true;status.dataset.locked="1";status.textContent=t("building");el("resultLinks").innerHTML="";try{const level=el("testLevel").value,boxes=[];for(let i=0;i<TASKS.length;i+=4){boxes.push(TASKS.slice(i,i+4).map(task=>({name:task.name,level})));}showResult(buildDocument(boxes,state.lang==="da"?"test_alle_opgaver.pdf":"test_all_assignments.pdf",Number(el("tasks").value)||5));}catch(error){status.textContent=`${t("error")}: ${error.message}`;}finally{button.disabled=false;} }
+
+    el("language").addEventListener("change",e=>{state.lang=e.target.value;state.category="";setText();renderBoxes();queuePreview();});
+    el("categoryFilter").addEventListener("change",e=>{state.category=e.target.value;renderBoxes();});
+    el("doubleSided").addEventListener("change",()=>{renderBoxes();queuePreview();});
+    ["pages","tasks"].forEach(id=>el(id).addEventListener("input",queuePreview));
+    el("clearBtn").addEventListener("click",clearBoxes);el("generateBtn").addEventListener("click",generatePdf);el("testPdfBtn").addEventListener("click",generateTestPdf);
+    setText();clearBoxes();
+  </script>
+</body>
+</html>
